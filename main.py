@@ -1,136 +1,119 @@
-# Import necessary libraries
-from sklearn.datasets import fetch_openml
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn import metrics
-import matplotlib.pyplot as plt
+import random
+from colorama import init, Fore, Style
+init(autoreset=True)
 
-# Load MNIST dataset from OpenML (you can also use sklearn's inbuilt datasets)
-mnist = fetch_openml('mnist_784', version=1)
+def display_board(board):
+    print()
+    def colored(cell):
+        if cell == 'X':
+            return Fore.RED + cell + Style.RESET_ALL
+        elif cell == 'O':
+            return Fore.BLUE + cell + Style.RESET_ALL
+        else:
+            return Fore.YELLOW + cell + Style.RESET_ALL
+    print(' ' + colored(board[0]) + ' | ' + colored(board[1]) + ' | ' + colored(board[2]))
+    print(Fore.CYAN + '-----------' + Style.RESET_ALL)
+    print(' ' + colored(board[3]) + ' | ' + colored(board[4]) + ' | ' + colored(board[5]))
+    print(Fore.CYAN + '-----------' + Style.RESET_ALL)
+    print(' ' + colored(board[6]) + ' | ' + colored(board[7]) + ' | ' + colored(board[8]))
+    print()
 
-# Data preprocessing
-X = mnist['data'] / 255.0  # Normalize the data (pixels between 0 and 1)
-y = mnist['target'].astype(int)  # Labels (digits 0-9)
+def player_choice():
+    symbol = ''
+    while symbol not in ['X', 'O']:
+        symbol = input(Fore.GREEN + "Do you want to be X or O? " + Style.RESET_ALL).upper()
+    if symbol == 'X':
+        return ('X', 'O')
+    else:
+        return ('O', 'X')
 
-# Split into training and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+def player_move(board, symbol):
+    move = -1
+    while move not in range(1, 10) or not board[move - 1].isdigit():
+        try:
+            move = int(input("Enter your move (1-9): "))
+            if move not in range(1, 10) or not board[move - 1].isdigit():
+                print("Invalid move. Please try again.")
+        except ValueError:
+            print("Please enter a number between 1 and 9.")
+    board[move - 1] = symbol
 
-# Create and train a logistic regression model
-model = LogisticRegression(max_iter=10000)
-model.fit(X_train, y_train)
+def ai_move(board, ai_symbol, player_symbol):
+    for i in range(9):
+        if board[i].isdigit():
+            board_copy = board.copy()
+            board_copy[i] = ai_symbol
+            if check_win(board_copy, ai_symbol):
+                board[i] = ai_symbol
+                return
+    for i in range(9):
+        if board[i].isdigit():
+            board_copy = board.copy()
+            board_copy[i] = player_symbol
+            if check_win(board_copy, player_symbol):
+                board[i] = ai_symbol
+                return
+    possible_moves = [i for i in range(9) if board[i].isdigit()]
+    move = random.choice(possible_moves)
+    board[move] = ai_symbol
 
-# Evaluate the model
-y_pred = model.predict(X_test)
-accuracy = metrics.accuracy_score(y_test, y_pred)
-print(f"Test accuracy: {accuracy}")
+def check_win(board, symbol):
+    win_conditions = [
+        (0, 1, 2), (3, 4, 5), (6, 7, 8),    # Horizontal
+        (0, 3, 6), (1, 4, 7), (2, 5, 8),    # Vertical
+        (0, 4, 8), (2, 4, 6)                # Diagonal
+    ]
+    for cond in win_conditions:
+        if board[cond[0]] == board[cond[1]] == board[cond[2]] == symbol:
+            return True
+    return False
 
-# Display the first 5 test images and their predicted labels
-for i in range(5):  # You can change the range to display more images (e.g., 10 or more)
-    plt.imshow(X_test.iloc[i].values.reshape(28, 28), cmap=plt.cm.binary)
-    plt.title(f"Predicted: {y_pred[i]}, Actual: {y_test.iloc[i]}")
-    plt.show()
+def check_full(board):
+    return all(not spot.isdigit() for spot in board)
+
+def tic_tac_toe():
+    print("Welcome to Tic-Tac-Toe!")
+    player_name = input(Fore.GREEN + "Enter your name: " + Style.RESET_ALL)
+    while True:
+        board = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+        player_symbol, ai_symbol = player_choice()
+        turn = 'Player'
+        game_on = True
+
+        while game_on:
+            display_board(board)
+            if turn == 'Player':
+                player_move(board, player_symbol)
+                if check_win(board, player_symbol):
+                    display_board(board)
+                    print("Congratulations! " + player_name + ", you have won the game!")
+                    game_on = False
+                else:
+                    if check_full(board):
+                        display_board(board)
+                        print("It's a tie!")
+                        break
+                    else:
+                        turn = 'AI'
+            else:
+                ai_move(board, ai_symbol, player_symbol)
+                if check_win(board, ai_symbol):
+                    display_board(board)
+                    print("AI has won the game!")
+                    game_on = False
+                else:
+                    if check_full(board):
+                        display_board(board)
+                        print("It's a tie!")
+                        break
+                    else:
+                        turn = 'Player'
+        play_again = input("Do you want to play again? (yes/no): ").lower()
+        if play_again != 'yes':
+            print("Thank you for playing!")
+            break
+
+if __name__ == "__main__":
+    tic_tac_toe()
 
 
-
-# import numpy as np
-# import matplotlib.pyplot as plt
-# from sklearn.datasets import load_digits
-# from sklearn.model_selection import train_test_split
-# from sklearn.neural_network import MLPClassifier
-# from sklearn.preprocessing import StandardScaler
-# from sklearn.metrics import classification_report, confusion_matrix
-# import seaborn as sns
-
-# def introduction_to_ml():
-#     """
-#     A simple introduction to Machine Learning with Neural Networks
-#     Using the MNIST Digit Recognition Dataset
-#     """
-#     # 1. Load the Digits Dataset
-#     print("=== Step 1: Loading Digit Dataset ===")
-#     digits = load_digits()
-#     X, y = digits.data, digits.target
-    
-#     # Print basic dataset information
-#     print(f"Total number of samples: {len(X)}")
-#     print(f"Image shape: {digits.images[0].shape}")
-#     print(f"Number of classes: {len(np.unique(y))}")
-    
-#     # 2. Visualize Some Sample Digits
-#     print("\n=== Step 2: Visualizing Sample Digits ===")
-#     plt.figure(figsize=(10, 5))
-#     for i in range(10):
-#         plt.subplot(2, 5, i+1)
-#         plt.imshow(digits.images[i], cmap='gray')
-#         plt.title(f'Digit: {digits.target[i]}')
-#         plt.axis('off')
-#     plt.tight_layout()
-#     plt.savefig('sample_digits.png')
-#     plt.close()
-    
-#     # 3. Prepare the Data
-#     print("\n=== Step 3: Preparing Data ===")
-#     # Split the data into training and testing sets
-#     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-#     # Scale the features
-#     scaler = StandardScaler()
-#     X_train_scaled = scaler.fit_transform(X_train)
-#     X_test_scaled = scaler.transform(X_test)
-    
-#     # 4. Create and Train Neural Network
-#     print("\n=== Step 4: Training Neural Network ===")
-#     # Create a Multi-Layer Perceptron Classifier
-#     mlp = MLPClassifier(
-#         hidden_layer_sizes=(100, 50),  # Two hidden layers
-#         max_iter=500,
-#         activation='relu',
-#         solver='adam',
-#         random_state=42
-#     )
-    
-#     # Train the model
-#     mlp.fit(X_train_scaled, y_train)
-    
-#     # 5. Evaluate the Model
-#     print("\n=== Step 5: Model Evaluation ===")
-#     # Make predictions
-#     y_pred = mlp.predict(X_test_scaled)
-    
-#     # Print classification report
-#     print("Classification Report:")
-#     print(classification_report(y_test, y_pred))
-    
-#     # Create Confusion Matrix Visualization
-#     plt.figure(figsize=(10, 8))
-#     cm = confusion_matrix(y_test, y_pred)
-#     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-#     plt.title('Confusion Matrix')
-#     plt.xlabel('Predicted Label')
-#     plt.ylabel('True Label')
-#     plt.tight_layout()
-#     plt.savefig('confusion_matrix.png')
-#     plt.close()
-    
-#     # 6. Visualize Predictions
-#     print("\n=== Step 6: Visualizing Predictions ===")
-#     plt.figure(figsize=(12, 6))
-#     for i in range(10):
-#         plt.subplot(2, 5, i+1)
-#         plt.imshow(X_test.reshape(-1, 8, 8)[i], cmap='gray')
-#         plt.title(f'True: {y_test[i]}, Pred: {y_pred[i]}')
-#         plt.axis('off')
-#     plt.tight_layout()
-#     plt.savefig('predictions.png')
-#     plt.close()
-
-#     # Print overall accuracy
-#     accuracy = mlp.score(X_test_scaled, y_test)
-#     print(f"\nModel Accuracy: {accuracy * 100:.2f}%")
-
-# def main():
-#     print("Machine Learning Project: Digit Recognition")
-#     introduction_to_ml()
-
-# if __name__ == "__main__":
-#     main()
