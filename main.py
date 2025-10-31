@@ -1,119 +1,93 @@
-import random
-from colorama import init, Fore, Style
-init(autoreset=True)
+import cv2
+import numpy as np
 
-def display_board(board):
-    print()
-    def colored(cell):
-        if cell == 'X':
-            return Fore.RED + cell + Style.RESET_ALL
-        elif cell == 'O':
-            return Fore.BLUE + cell + Style.RESET_ALL
-        else:
-            return Fore.YELLOW + cell + Style.RESET_ALL
-    print(' ' + colored(board[0]) + ' | ' + colored(board[1]) + ' | ' + colored(board[2]))
-    print(Fore.CYAN + '-----------' + Style.RESET_ALL)
-    print(' ' + colored(board[3]) + ' | ' + colored(board[4]) + ' | ' + colored(board[5]))
-    print(Fore.CYAN + '-----------' + Style.RESET_ALL)
-    print(' ' + colored(board[6]) + ' | ' + colored(board[7]) + ' | ' + colored(board[8]))
-    print()
+def apply_color_filter(image, filter_type):
+    """Apply the specified color filter to the image."""
+    # Create a copy of the image to avoid modifying the original
+    filtered_image = image.copy()
 
-def player_choice():
-    symbol = ''
-    while symbol not in ['X', 'O']:
-        symbol = input(Fore.GREEN + "Do you want to be X or O? " + Style.RESET_ALL).upper()
-    if symbol == 'X':
-        return ('X', 'O')
-    else:
-        return ('O', 'X')
+    if filter_type == "original":
+        # Do nothing; show the image as is
+        return filtered_image
 
-def player_move(board, symbol):
-    move = -1
-    while move not in range(1, 10) or not board[move - 1].isdigit():
-        try:
-            move = int(input("Enter your move (1-9): "))
-            if move not in range(1, 10) or not board[move - 1].isdigit():
-                print("Invalid move. Please try again.")
-        except ValueError:
-            print("Please enter a number between 1 and 9.")
-    board[move - 1] = symbol
+    elif filter_type == "red_tint":
+        # Remove blue and green channels for red tint
+        filtered_image[:, :, 1] = 0  # Green channel
+        filtered_image[:, :, 0] = 0  # Blue channel
 
-def ai_move(board, ai_symbol, player_symbol):
-    for i in range(9):
-        if board[i].isdigit():
-            board_copy = board.copy()
-            board_copy[i] = ai_symbol
-            if check_win(board_copy, ai_symbol):
-                board[i] = ai_symbol
-                return
-    for i in range(9):
-        if board[i].isdigit():
-            board_copy = board.copy()
-            board_copy[i] = player_symbol
-            if check_win(board_copy, player_symbol):
-                board[i] = ai_symbol
-                return
-    possible_moves = [i for i in range(9) if board[i].isdigit()]
-    move = random.choice(possible_moves)
-    board[move] = ai_symbol
+    elif filter_type == "blue_tint":
+        # Remove red and green channels for blue tint
+        filtered_image[:, :, 1] = 0  # Green channel
+        filtered_image[:, :, 2] = 0  # Red channel
 
-def check_win(board, symbol):
-    win_conditions = [
-        (0, 1, 2), (3, 4, 5), (6, 7, 8),    # Horizontal
-        (0, 3, 6), (1, 4, 7), (2, 5, 8),    # Vertical
-        (0, 4, 8), (2, 4, 6)                # Diagonal
-    ]
-    for cond in win_conditions:
-        if board[cond[0]] == board[cond[1]] == board[cond[2]] == symbol:
-            return True
-    return False
+    elif filter_type == "green_tint":
+        # Remove blue and red channels for green tint
+        filtered_image[:, :, 0] = 0  # Blue channel
+        filtered_image[:, :, 2] = 0  # Red channel
 
-def check_full(board):
-    return all(not spot.isdigit() for spot in board)
+    elif filter_type == "increase_red":
+        # Increase the intensity of the red channel
+        filtered_image[:, :, 2] = cv2.add(filtered_image[:, :, 2], 50)  # Increase red channel
 
-def tic_tac_toe():
-    print("Welcome to Tic-Tac-Toe!")
-    player_name = input(Fore.GREEN + "Enter your name: " + Style.RESET_ALL)
+    elif filter_type == "decrease_blue":
+        # Decrease the intensity of the blue channel
+        filtered_image[:, :, 0] = cv2.subtract(filtered_image[:, :, 0], 50)  # Decrease blue channel
+
+    return filtered_image
+
+
+# Load the image
+image_path = 'example.jpg'  # Provide your image path
+image = cv2.imread(image_path)
+
+if image is None:
+    print("Error: Image not found!")
+else:
+    # Resize the image to 800x800 (width=800, height=800)
+    image = cv2.resize(image, (1200, 800))
+
+    filter_type = "original"  # Default filter type
+
+    print("Press the following keys to apply filters:")
+    print("o - Original")
+    print("r - Red Tint")
+    print("b - Blue Tint")
+    print("g - Green Tint")
+    print("i - Increase Red Intensity")
+    print("d - Decrease Blue Intensity")
+    print("q - Quit")
+
     while True:
-        board = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-        player_symbol, ai_symbol = player_choice()
-        turn = 'Player'
-        game_on = True
+        # Apply the selected filter
+        filtered_image = apply_color_filter(image, filter_type)
 
-        while game_on:
-            display_board(board)
-            if turn == 'Player':
-                player_move(board, player_symbol)
-                if check_win(board, player_symbol):
-                    display_board(board)
-                    print("Congratulations! " + player_name + ", you have won the game!")
-                    game_on = False
-                else:
-                    if check_full(board):
-                        display_board(board)
-                        print("It's a tie!")
-                        break
-                    else:
-                        turn = 'AI'
-            else:
-                ai_move(board, ai_symbol, player_symbol)
-                if check_win(board, ai_symbol):
-                    display_board(board)
-                    print("AI has won the game!")
-                    game_on = False
-                else:
-                    if check_full(board):
-                        display_board(board)
-                        print("It's a tie!")
-                        break
-                    else:
-                        turn = 'Player'
-        play_again = input("Do you want to play again? (yes/no): ").lower()
-        if play_again != 'yes':
-            print("Thank you for playing!")
+        # Display the filtered image
+        cv2.imshow("Filtered Image", filtered_image)
+
+        # Wait for key press (use waitKey(0) or waitKey(1), depending on your desired behavior)
+        key = cv2.waitKey(0) & 0xFF
+
+        # Map key presses to filters
+        if key == ord('o'):
+            filter_type = "original"
+        elif key == ord('r'):
+            filter_type = "red_tint"
+        elif key == ord('b'):
+            filter_type = "blue_tint"
+        elif key == ord('g'):
+            filter_type = "green_tint"
+        elif key == ord('i'):
+            filter_type = "increase_red"
+        elif key == ord('d'):
+            filter_type = "decrease_blue"
+        elif key == ord('q'):
+            print("Exiting...")
             break
+        else:
+            print("Invalid key! Please use 'o', 'r', 'b', 'g', 'i', 'd', or 'q'.")
 
-if __name__ == "__main__":
-    tic_tac_toe()
+    cv2.destroyAllWindows()
+
+
 
 
